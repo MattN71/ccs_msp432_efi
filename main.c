@@ -31,13 +31,17 @@
  * --/COPYRIGHT--*/
 /*******************************************************************************/
 
+#include <Peripheral_HAL/uart_api.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include "common.h"
-
+#include "Peripheral_HAL/uart_api.h"
 
 /* Statics */
 static volatile uint32_t aclk, mclk, smclk, hsmclk, bclk;
+
+extern int counter;
+extern uint8_t transmitBuf[64];
 
 int main(void)
 {
@@ -47,15 +51,30 @@ int main(void)
     /*
      *  Getting all of the frequency values of the CLK sources using the
      * convenience functions */
-    aclk = CS_getACLK();
-    mclk = CS_getMCLK();
-    smclk = CS_getSMCLK();
-    hsmclk = CS_getHSMCLK();
-    bclk = CS_getBCLK();
+    aclk = MAP_CS_getACLK();
+    mclk = MAP_CS_getMCLK();
+    smclk = MAP_CS_getSMCLK();
+    hsmclk = MAP_CS_getHSMCLK();
+    bclk = MAP_CS_getBCLK();
 
+    UARTsetBaud(9600); //Init UART to 57600 baud
+
+    print('H');
+    print('e');
+    print('l');
+    print('l');
+    println('o');
+
+    uint8_t i = 0;
 
     while (1)
     {
+        if (println(i + '0')) {
+            i++;
+            if (i == 10) {
+                i = 0;
+            }
+        }
 
     }
 }

@@ -24,7 +24,7 @@ void clock_power_init(void) {
        MAP_FlashCtl_setWaitState(FLASH_BANK0, 2);
        MAP_FlashCtl_setWaitState(FLASH_BANK1, 2);
        MAP_CS_startHFXT(false);
-       MAP_CS_startLFXT(CS_LFXT_DRIVE3);
+       MAP_CS_startLFXT(CS_LFXT_DRIVE3); //Max drive
 
        /* Initializing the clock source as follows:
         *      MCLK = HFXT/1 = 48MHz
@@ -33,7 +33,6 @@ void clock_power_init(void) {
         *      ACLK = LFXT/1 = 32kHz
         *      BCLK  = LFXT/1 = 32kHz
         */
-
 
        MAP_CS_initClockSignal(CS_MCLK, CS_HFXTCLK_SELECT, CS_CLOCK_DIVIDER_1);
        MAP_CS_initClockSignal(CS_HSMCLK, CS_HFXTCLK_SELECT, CS_CLOCK_DIVIDER_1);
