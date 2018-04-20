@@ -121,11 +121,12 @@ static void EUSCIA0_IRQHandler(void) {
 
 /* Attempts to add char to send buffer. Returns true if successful, returns false if buffer is full */
 bool print(uint8_t data) {
-    if ( bufferPointer.sendHead - bufferPointer.sendTail != 1) {
+    if (SIX_BIT(bufferPointer.sendHead - bufferPointer.sendTail) != 1) {
         transmitBuf[bufferPointer.sendTail] = data; //Add to buffer
         bufferPointer.sendTail++; //Increment index
         if (uartState == initial || uartState == idle) { //If UART is idle,
             beginSend();
+            uartState = active;
         }
         return true;
     } else {
@@ -136,7 +137,6 @@ bool print(uint8_t data) {
 static void beginSend() {
     EUSCI_A0->TXBUF = transmitBuf[bufferPointer.sendHead]; //Load first byte
     bufferPointer.sendHead++;
-    uartState = active;
 }
 
 bool println(uint8_t data) {

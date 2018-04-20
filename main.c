@@ -59,21 +59,18 @@ int main(void)
 
     UARTsetBaud(9600); //Init UART to 57600 baud
 
-    print('H');
+   /* print('H');
     print('e');
     print('l');
     print('l');
-    println('o');
+    println('o'); */
 
-    uint8_t i = 0;
+    uint8_t i = 0x00;
 
     while (1)
     {
-        if (println(i + '0')) {
-            i++;
-            if (i == 10) {
-                i = 0;
-            }
+        if (print(i + '0')) {
+            i = 1 - i;
         }
 
     }
