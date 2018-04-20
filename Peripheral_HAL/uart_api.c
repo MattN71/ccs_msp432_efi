@@ -15,16 +15,18 @@ int32_t sent = 0;
 
 
 //Buffers for UART
-static uint8_t receiveBuf[64];
-uint8_t transmitBuf[64];
+static volatile uint8_t receiveBuf[64];
+static volatile uint8_t transmitBuf[64];
 
 //Indexes for buffers
-struct {
-    uint_fast8_t recHead : 6;
-    uint_fast8_t recTail : 6;
-    uint_fast8_t sendHead : 6;
-    uint_fast8_t sendTail : 6;
-} bufferPointer = {0,0,0,0};
+static volatile uint_fast8_t recHead8b = 0;
+static volatile uint_fast8_t recTail8b = 0;
+static volatile uint_fast8_t sendHead8b = 0;
+static volatile uint_fast8_t sendTail8b = 0;
+#define recHead (recHead8b & 0x3F)
+#define recTail (recTail8b & 0x3F)
+#define sendHead (sendHead8b & 0x3F)
+#define sendTail (sendTail8b & 0x3F)
 
 enum {initial, idle, active} uartState = initial;
 
@@ -100,9 +102,9 @@ static void EUSCIA0_IRQHandler(void) {
         case 0x02: // Vector 2: UCRXIFG / RX buffer full
             break;
         case 0x04: // Vector 4: UCTXIFG / Transmit buffer empty
-            if ( bufferPointer.sendTail != bufferPointer.sendHead) {
-                EUSCI_A0->TXBUF = transmitBuf[bufferPointer.sendHead]; //Load first byte
-                bufferPointer.sendHead++;
+            if ( sendTail != sendHead) {
+                EUSCI_A0->TXBUF = transmitBuf[sendHead]; //Load first byte
+                sendHead8b++;
                 MAP_UART_clearInterruptFlag(EUSCI_A0_BASE, EUSCI_A_UART_TRANSMIT_INTERRUPT);
                 uartState = active;
             } else {
@@ -121,9 +123,9 @@ static void EUSCIA0_IRQHandler(void) {
 
 /* Attempts to add char to send buffer. Returns true if successful, returns false if buffer is full */
 bool print(uint8_t data) {
-    if (SIX_BIT(bufferPointer.sendHead - bufferPointer.sendTail) != 1) {
-        transmitBuf[bufferPointer.sendTail] = data; //Add to buffer
-        bufferPointer.sendTail++; //Increment index
+    if (sendHead - sendTail != 1) {
+        transmitBuf[sendTail] = data; //Add to buffer
+        sendTail8b++; //Increment index
         if (uartState == initial || uartState == idle) { //If UART is idle,
             beginSend();
             uartState = active;
@@ -135,8 +137,8 @@ bool print(uint8_t data) {
 }
 
 static void beginSend() {
-    EUSCI_A0->TXBUF = transmitBuf[bufferPointer.sendHead]; //Load first byte
-    bufferPointer.sendHead++;
+    EUSCI_A0->TXBUF = transmitBuf[sendHead]; //Load first byte
+    sendHead8b++;
 }
 
 bool println(uint8_t data) {
