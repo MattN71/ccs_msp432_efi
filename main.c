@@ -53,9 +53,10 @@
 #include "Peripheral_HAL/timer32_api.h"
 
 
+//test commit
+
 /* Statics */
 static volatile uint32_t aclk, mclk, smclk, hsmclk, bclk;
-
 extern int counter;
 extern uint8_t transmitBuf[64];
 
