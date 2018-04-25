@@ -56,7 +56,7 @@ void removeNode(struct timeNode *toRemove) {
             break;
         }
     }
-    toRemove.active = false; //Update active flag
+    toRemove->active = false; //Update active flag
 }
 
 //Inserts node into list in correct positon
