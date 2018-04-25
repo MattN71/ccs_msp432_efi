@@ -2,25 +2,7 @@
 #include <stdint.h>
 #include "common.h"
 
-#define bit_0 (1 << 0)
-#define bit_1 (1 << 1)
-#define bit_2 (1 << 2)
-#define bit_3 (1 << 3)
-#define bit_4 (1 << 4)
-#define bit_5 (1 << 5)
-#define bit_6 (1 << 6)
-#define bit_7 (1 << 7)
-#define bit_8 (1 << 8)
-#define bit_9 (1 << 9)
-#define bit_10 (1 << 10)
-#define bit_11 (1 << 11)
-#define bit_12 (1 << 12)
-#define bit_13 (1 << 13)
-#define bit_14 (1 << 14)
-#define bit_15 (1 << 15)
-#define bit_16 (1 << 16)
-
-#define masterClock ( ( (uint32_t)TIMER_A1->R << 16) | TIMER_A0->R)
+#define masterCount ( ( (uint32_t)TIMER_A1->R << 16) | TIMER_A0->R)
 
 static uint32_t queue[32]; //Queue of events to fire
 static uint_fast32_t index;
@@ -61,14 +43,15 @@ void TA0_N_IRQHandler() {
     const uint16_t reg = TIMER_A0->IV;
       switch (reg) {
       case 0x02: //Compare 1
-          (*fireOutput[index6b])(); //Turn on or off the output
-          reloadTimer();
+        //  if(masterCount >= n) {
+              (*fireOutput[index6b])(); //Turn on or off the output
+              reloadTimer();
+       //   }
           break;
       default:
           while (1) {
              //Catch debugger
           }
-          break;
 
     /*  Not enabled
       case 0x04: //Compare 2
