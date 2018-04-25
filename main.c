@@ -31,11 +31,12 @@
  * --/COPYRIGHT--*/
 /*******************************************************************************/
 
-#include <Peripheral_HAL/uart_api.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include "common.h"
 #include "Peripheral_HAL/uart_api.h"
+#include "Peripheral_HAL/timer32_api.h"
+
 
 /* Statics */
 static volatile uint32_t aclk, mclk, smclk, hsmclk, bclk;
@@ -47,6 +48,7 @@ int main(void)
 {
     //Initialize clock and power system
     clock_power_init();
+    init_timer32();
 
     /*
      *  Getting all of the frequency values of the CLK sources using the
@@ -59,16 +61,13 @@ int main(void)
 
     UARTsetBaud(9600); //Init UART to 57600 baud
 
-    uint8_t i = 0x00;
 
+    char message[] = "Test \n\r";
+    uint32_t len = sizeof(message)/sizeof(message[0]);
     while (1)
     {
-        if (print(i + '0')) {
-            i++;
-            if(i==10)
-                i = 0;
-        }
-
+        blockDelayMS(500);
+        forcePrint((uint8_t *)message, len);
     }
 }
 

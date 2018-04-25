@@ -1,6 +1,7 @@
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "Peripheral_HAL/uart_api.h"
 
 
@@ -11,24 +12,19 @@ static void beginSend();
 
 static uint32_t baudRate = 0;
 
-int32_t sent = 0;
-
-
 //Buffers for UART
-static volatile uint8_t receiveBuf[64];
-static volatile uint8_t transmitBuf[64];
+static uint8_t receiveBuf[64];
+uint8_t transmitBuf[64];
 
 //Indexes for buffers
-static volatile uint_fast8_t recHead8b = 0;
-static volatile uint_fast8_t recTail8b = 0;
-static volatile uint_fast8_t sendHead8b = 0;
-static volatile uint_fast8_t sendTail8b = 0;
-#define recHead (recHead8b & 0x3F)
-#define recTail (recTail8b & 0x3F)
-#define sendHead (sendHead8b & 0x3F)
-#define sendTail (sendTail8b & 0x3F)
+struct {
+    uint_fast8_t recHead : 6;
+    uint_fast8_t recTail : 6;
+    uint_fast8_t sendHead : 6;
+    uint_fast8_t sendTail : 6;
+} bufferPointer = {0,0,0,0};
 
-enum {initial, idle, active} uartState = initial;
+static enum {initial, idle, active} uartState = initial;
 
 static eUSCI_UART_Config uartConfig = {           // 8E1
     EUSCI_A_UART_CLOCKSOURCE_SMCLK,               // SMCLK Clock Source = 12MHz
@@ -55,12 +51,12 @@ static bool writeBaud() {
     case 57600:
         uartConfig.clockPrescalar = 13;
         uartConfig.firstModReg = 0;
-        uartConfig.secondModReg = 0; //37?
+        uartConfig.secondModReg = 37; //37 or 0?
         break;
     case 115200:
         uartConfig.clockPrescalar = 6;
         uartConfig.firstModReg = 8;
-        uartConfig.secondModReg = 0;
+        uartConfig.secondModReg = 32;
         break;
     default:
         return false; //Not supported
@@ -102,9 +98,9 @@ static void EUSCIA0_IRQHandler(void) {
         case 0x02: // Vector 2: UCRXIFG / RX buffer full
             break;
         case 0x04: // Vector 4: UCTXIFG / Transmit buffer empty
-            if ( sendTail != sendHead) {
-                EUSCI_A0->TXBUF = transmitBuf[sendHead]; //Load first byte
-                sendHead8b++;
+            bufferPointer.sendHead++; //Increment head once send is successful
+            if ( SIX_BIT(bufferPointer.sendTail) != SIX_BIT(bufferPointer.sendHead)) {
+                EUSCI_A0->TXBUF = transmitBuf[SIX_BIT(bufferPointer.sendHead)]; //Load first/next byte
                 MAP_UART_clearInterruptFlag(EUSCI_A0_BASE, EUSCI_A_UART_TRANSMIT_INTERRUPT);
                 uartState = active;
             } else {
@@ -123,30 +119,37 @@ static void EUSCIA0_IRQHandler(void) {
 
 /* Attempts to add char to send buffer. Returns true if successful, returns false if buffer is full */
 bool print(uint8_t data) {
-    if (sendHead - sendTail != 1) {
-        transmitBuf[sendTail] = data; //Add to buffer
-        sendTail8b++; //Increment index
+    if (SIX_BIT( SIX_BIT(bufferPointer.sendHead) - SIX_BIT(bufferPointer.sendTail) ) != 1) {
+        transmitBuf[SIX_BIT(bufferPointer.sendTail)] = data; //Add to buffer
+        bufferPointer.sendTail++; //Increment index
         if (uartState == initial || uartState == idle) { //If UART is idle,
             beginSend();
             uartState = active;
         }
         return true;
     } else {
-        return false;
+        return false; //Buffer is full
     }
 }
 
 static void beginSend() {
-    EUSCI_A0->TXBUF = transmitBuf[sendHead]; //Load first byte
-    sendHead8b++;
+    EUSCI_A0->TXBUF = transmitBuf[bufferPointer.sendHead]; //Load first byte
 }
 
 bool println(uint8_t data) {
     if(!print(data)) {
         return false;
     }
-    while(!print(10)){}
-    while(!print(13)){}
+    while( !print(10) );
+    while( !print(13) );
     return true;
 }
 
+//Simple blocking function that sends a string
+void forcePrint(uint8_t *start, uint32_t length) {
+    size_t i;
+    for (i = 0; i < length; i++) {
+        while( !print(start[i]) ); //Wait until added to buffer successfully
+    }
+    while(uartState != idle); //Wait until entire buffer has been shifted out;
+}
