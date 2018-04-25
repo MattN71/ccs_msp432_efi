@@ -53,7 +53,7 @@
 #include "Peripheral_HAL/timer32_api.h"
 
 
-//test commit
+//test commit #2
 
 /* Statics */
 static volatile uint32_t aclk, mclk, smclk, hsmclk, bclk;
